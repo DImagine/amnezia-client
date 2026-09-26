@@ -27,6 +27,9 @@ qrc_*.cpp
 ui_*.h
 Makefile*
 *build-*
+# Keep the local build instructions and script under version control.
+!BUILD-WINDOWS-LOCAL.md
+!deploy/build-local-windows.ps1
 compile_commands.json
 
 # fastlane
