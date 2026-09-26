@@ -34,6 +34,10 @@ NotificationHandler* NotificationHandler::instance() {
 NotificationHandler::NotificationHandler(QObject* parent) : QObject(parent) {
     Q_ASSERT(!s_instance);
     s_instance = this;
+    connect(&m_quickSwitchNotifications, &ConnectionNotificationGate::settledConnected, this, [this]() {
+        // Reuse the stock message, translations and Windows tray notification path.
+        notifyInternal(VpnState, tr("AmneziaVPN"), tr("VPN Connected"), 2000);
+    });
 }
 
 NotificationHandler::~NotificationHandler() {
@@ -43,6 +47,7 @@ NotificationHandler::~NotificationHandler() {
 
 void NotificationHandler::setConnectionState(Vpn::ConnectionState state)
 {
+    const bool notifyState = m_quickSwitchNotifications.shouldNotify(state == Vpn::ConnectionState::Connected);
     if (state != Vpn::ConnectionState::Connected && state != Vpn::ConnectionState::Disconnected) {
         return;
     }
@@ -72,9 +77,19 @@ void NotificationHandler::setConnectionState(Vpn::ConnectionState state)
 
     Q_ASSERT(title.isEmpty() == message.isEmpty());
 
-    if (!title.isEmpty()) {
+    if (notifyState && !title.isEmpty()) {
         notifyInternal(VpnState, title, message, 2000);
     }
+}
+
+void NotificationHandler::beginQuickSwitch()
+{
+    m_quickSwitchNotifications.begin();
+}
+
+void NotificationHandler::endQuickSwitch(bool success)
+{
+    m_quickSwitchNotifications.end(success);
 }
 
 void NotificationHandler::onTranslationsUpdated()

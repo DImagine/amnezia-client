@@ -77,6 +77,7 @@ InstallUiController::InstallUiController(InstallController *installController,
       m_tProxyConfigModel(tProxyConfigModel),
       m_connectionController(connectionController)
 {
+    connect(m_installController, &InstallController::connectionConfigValidated, this, &InstallUiController::connectionConfigValidated);
     connect(m_installController, &InstallController::configValidated, this, &InstallUiController::configValidated);
     connect(m_installController, &InstallController::validationErrorOccurred, this, &InstallUiController::installationErrorOccurred);
 }
@@ -647,14 +648,17 @@ void InstallUiController::addEmptyServer()
     emit installServerFinished(tr("Server added successfully"));
 }
 
-void InstallUiController::validateConfig()
+void InstallUiController::validateConfig(quint64 requestId)
 {
     const QString serverId = m_serversController->getDefaultServerId();
     if (serverId.isEmpty()) {
-        emit configValidated(false);
+        if (requestId)
+            emit connectionConfigValidated(requestId, false, ErrorCode::NoError);
+        else
+            emit configValidated(false);
         return;
     }
-    m_installController->validateConfig(serverId);
+    m_installController->validateConfig(serverId, requestId);
 }
 
 void InstallUiController::updateProtocols(const QString &serverId, int containerIndex)

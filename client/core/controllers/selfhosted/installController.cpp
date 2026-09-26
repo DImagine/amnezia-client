@@ -369,17 +369,22 @@ ErrorCode InstallController::validateAndPrepareConfig(const QString &serverId)
     return ErrorCode::NoError;
 }
 
-void InstallController::validateConfig(const QString &serverId)
+void InstallController::validateConfig(const QString &serverId, quint64 requestId)
 {
     QFuture<ErrorCode> future = QtConcurrent::run([this, serverId]() {
         return validateAndPrepareConfig(serverId);
     });
 
     auto *watcher = new QFutureWatcher<ErrorCode>(this);
-    connect(watcher, &QFutureWatcher<ErrorCode>::finished, this, [this, watcher]() {
+    connect(watcher, &QFutureWatcher<ErrorCode>::finished, this, [this, watcher, requestId]() {
         ErrorCode errorCode = watcher->result();
         watcher->deleteLater();
 
+        // Tagged results are checked by the quick-switch owner before any UI effects.
+        if (requestId) {
+            emit connectionConfigValidated(requestId, errorCode == ErrorCode::NoError, errorCode);
+            return;
+        }
         if (errorCode == ErrorCode::NoError) {
             emit configValidated(true);
             return;

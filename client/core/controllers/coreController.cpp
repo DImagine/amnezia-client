@@ -11,6 +11,7 @@
 #include "logger.h"
 #include "secureQSettings.h"
 #include "core/utils/appUiConfig.h"
+#include "ui/controllers/quickSplitController.h"
 
 #if defined(Q_OS_ANDROID)
     #include "core/utils/installedAppsImageProvider.h"
@@ -217,6 +218,60 @@ void CoreController::initControllers()
 
     m_appSplitTunnelingUiController = new AppSplitTunnelingUiController(m_appSplitTunnelingController, m_appSplitTunnelingModel, this);
     setQmlContextProperty("AppSplitTunnelingController", m_appSplitTunnelingUiController);
+
+    auto *quickSplit = new QuickSplitController(this);
+    m_quickSplitController = quickSplit;
+    setQmlContextProperty("QuickSplitController", quickSplit);
+    const auto updateQuickModes = [this, quickSplit]() {
+        quickSplit->setModes(m_appSettingsRepository->isSitesSplitTunnelingEnabled(),
+                             m_appSettingsRepository->isAppsSplitTunnelingEnabled());
+    };
+    connect(m_appSettingsRepository, &SecureAppSettingsRepository::sitesSplitTunnelingEnabledChanged,
+            quickSplit, updateQuickModes);
+    connect(m_appSettingsRepository, &SecureAppSettingsRepository::appsSplitTunnelingEnabledChanged,
+            quickSplit, updateQuickModes);
+    updateQuickModes();
+    const auto updateQuickContext = [this, quickSplit]() {
+        const QString server = m_serversController->getDefaultServerId();
+        // A server/protocol change cancels any queued reconnect to the previous selection.
+        const QString context = server.isEmpty() ? QString() : server + QLatin1Char('/')
+            + QString::number(static_cast<int>(m_serversController->getDefaultContainer(server)));
+        quickSplit->setContext(context, !m_serversUiController->isDefaultServerDefaultContainerHasSplitTunneling());
+    };
+    connect(m_serversUiController, &ServersUiController::defaultServerIdChanged, quickSplit, updateQuickContext);
+    updateQuickContext();
+    connect(m_connectionUiController, &ConnectionUiController::connectionStateChanged, quickSplit,
+            [this, quickSplit]() {
+        // Read the settled UI state: a nested Disconnected can supersede an outer Error.
+        quickSplit->observeConnection(m_connectionUiController->isConnected() ? QuickSplitController::Connected
+            : m_connectionUiController->isConnectionInProgress() ? QuickSplitController::Transition
+                                                               : QuickSplitController::Disconnected);
+    });
+    connect(quickSplit, &QuickSplitController::disconnectRequested,
+            m_connectionUiController, &ConnectionUiController::closeConnection);
+    connect(quickSplit, &QuickSplitController::reconnectRequested, this, [this, quickSplit, updateQuickContext]() {
+        updateQuickContext();
+        if (quickSplit->busy())
+            m_connectionUiController->toggleConnection(); // Reuse config validation and normal error handling.
+    });
+    connect(quickSplit, &QuickSplitController::applyMode, this, [this](int mode) {
+        // Preserve the lists and inclusion/exclusion rules, changing only their enable flags.
+        m_ipSplitTunnelingUiController->toggleSplitTunneling(false);
+        m_appSplitTunnelingUiController->toggleSplitTunneling(false);
+        if (mode == 1)
+            m_ipSplitTunnelingUiController->toggleSplitTunneling(true);
+        else if (mode == 2)
+            m_appSplitTunnelingUiController->toggleSplitTunneling(true);
+    });
+    connect(m_connectionUiController, &ConnectionUiController::connectionErrorOccurred,
+            quickSplit, &QuickSplitController::connectionFailed);
+    connect(m_connectionUiController, &ConnectionUiController::unsupportedConnectDrawerRequested,
+            quickSplit, &QuickSplitController::connectionFailed);
+    connect(m_connectionUiController, &ConnectionUiController::noInstalledContainers,
+            quickSplit, &QuickSplitController::connectionFailed);
+    connect(quickSplit, &QuickSplitController::failed, this, [this](const QString &message) {
+        emit m_pageController->showNotificationMessage(message);
+    });
 
     m_systemController = new SystemController(this);
     setQmlContextProperty("SystemController", m_systemController);

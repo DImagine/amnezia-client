@@ -159,6 +159,7 @@ PageType {
             ConnectButton {
                 id: connectButton
                 objectName: "connectButton"
+                enabled: !QuickSplitController.busy
 
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignCenter
@@ -167,6 +168,7 @@ PageType {
             BasicButtonType {
                 id: splitTunnelingButton
                 objectName: "splitTunnelingButton"
+                enabled: !QuickSplitController.busy
 
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
                 leftPadding: 16
@@ -209,6 +211,21 @@ PageType {
                 }
             }
 
+            QuickSplitTunneling {
+                objectName: "quickSplitTunneling"
+                visible: Qt.platform.os === "windows"
+                Layout.fillWidth: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+                selectedMode: QuickSplitController.mode
+                pendingMode: QuickSplitController.pendingMode
+                phase: QuickSplitController.phase
+                available: QuickSplitController.available
+                connected: ConnectionController.isConnected
+                connectionBusy: ConnectionController.isConnectionInProgress
+                onModeRequested: function(mode) { QuickSplitController.requestMode(mode) }
+            }
+
             AdLabel {
                 id: adLabel
 
@@ -224,6 +241,7 @@ PageType {
     DrawerType2 {
         id: drawer
         objectName: "drawerProtocol"
+        enabled: !QuickSplitController.busy
 
         anchors.fill: parent
 

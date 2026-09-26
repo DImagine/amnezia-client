@@ -7221,4 +7221,78 @@ Remove the server from the app to continue.</source>
         <translation>Невозможно удалить сервер во время активного соединения</translation>
     </message>
 </context>
+<context>
+    <name>QuickSplitTunneling</name>
+    <message>
+        <source>Split tunneling</source>
+        <translation>Раздельное туннелирование</translation>
+    </message>
+    <message>
+        <source>Split tunneling settings</source>
+        <translation>Настройки раздельного туннелирования</translation>
+    </message>
+    <message>
+        <source>Edit address and application lists</source>
+        <translation>Изменить списки адресов и приложений</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Выключено</translation>
+    </message>
+    <message>
+        <source>Addresses</source>
+        <translation>Адреса</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <translation>Приложения</translation>
+    </message>
+    <message>
+        <source>Apply and reconnect VPN</source>
+        <translation>Применить и переподключить VPN</translation>
+    </message>
+    <message>
+        <source>Apply to the next connection</source>
+        <translation>Применить при следующем подключении</translation>
+    </message>
+    <message>
+        <source>The server controls split tunneling</source>
+        <translation>Разделение задано сервером</translation>
+    </message>
+    <message>
+        <source>Disconnecting to apply the mode…</source>
+        <translation>Отключаем VPN для смены режима…</translation>
+    </message>
+    <message>
+        <source>Applying the mode…</source>
+        <translation>Применяем режим…</translation>
+    </message>
+    <message>
+        <source>Reconnecting VPN…</source>
+        <translation>Подключаем VPN…</translation>
+    </message>
+    <message>
+        <source>Both types are enabled. Select one mode.</source>
+        <translation>Включены оба вида. Выберите один режим.</translation>
+    </message>
+    <message>
+        <source>Changing the mode reconnects VPN</source>
+        <translation>При смене режима VPN переподключится</translation>
+    </message>
+    <message>
+        <source>Applies to the next connection</source>
+        <translation>Применится при следующем подключении</translation>
+    </message>
+</context>
+<context>
+    <name>QuickSplitController</name>
+    <message>
+        <source>Mode saved. Automatic reconnection did not complete; check the VPN connection.</source>
+        <translation>Режим сохранён. Автоподключение не завершилось — проверьте соединение VPN.</translation>
+    </message>
+    <message>
+        <source>Could not switch the mode. Split tunneling settings were not changed.</source>
+        <translation>Не удалось переключить режим. Настройки раздельного туннелирования не изменены.</translation>
+    </message>
+</context>
 </TS>

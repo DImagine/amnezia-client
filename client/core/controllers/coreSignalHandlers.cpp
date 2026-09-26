@@ -13,6 +13,7 @@
 #include "vpnConnection.h"
 #include "ui/controllers/qml/pageController.h"
 #include "ui/controllers/connectionUiController.h"
+#include "ui/controllers/quickSplitController.h"
 #include "ui/controllers/settingsUiController.h"
 #include "ui/controllers/serversUiController.h"
 #include "ui/controllers/ipSplitTunnelingUiController.h"
@@ -313,41 +314,90 @@ void CoreSignalHandlers::initAppSplitTunnelingModelUpdateHandler()
 
 void CoreSignalHandlers::initPrepareConfigHandler()
 {
-    connect(m_coreController->m_connectionUiController, &ConnectionUiController::prepareConfig, this, [this]() {
+    const auto context = [this]() {
+        const QString server = m_coreController->m_serversController->getDefaultServerId();
+        return server + QLatin1Char('/') + QString::number(static_cast<int>(
+            m_coreController->m_serversController->getDefaultContainer(server)));
+    };
+    const auto cancelPreparation = [this]() {
+        m_quickPreparation.cancel(); // Late worker results can no longer open a connection.
+        m_coreController->m_subscriptionUiController->cancelConnectionValidation();
+    };
+    connect(m_coreController->m_quickSplitController, &QuickSplitController::automaticSwitchFinished,
+            this, [cancelPreparation](bool) { cancelPreparation(); });
+    connect(m_coreController->m_quickSplitController, &QuickSplitController::cancelReconnectRequested,
+            this, [this, cancelPreparation]() {
+        const bool preparing = m_coreController->m_connectionUiController->getCurrentConnectionState()
+            == Vpn::ConnectionState::Preparing;
+        cancelPreparation();
+        m_coreController->m_connectionUiController->closeConnection();
+        if (preparing)
+            m_coreController->m_connectionController->setConnectionState(Vpn::ConnectionState::Disconnected);
+    });
+    connect(m_coreController->m_connectionController, &ConnectionController::closeConnectionRequested,
+            this, [this, cancelPreparation]() {
+        if (!m_quickPreparation.active())
+            return;
+        cancelPreparation();
+        // A preparing connection has no tunnel yet to report its own Disconnected event.
+        m_coreController->m_connectionController->setConnectionState(Vpn::ConnectionState::Disconnected);
+    });
+
+    connect(m_coreController->m_connectionUiController, &ConnectionUiController::prepareConfig,
+            this, [this, context]() {
+        const auto quick = m_coreController->m_quickSplitController;
+        const quint64 requestId = quick->phase() == QuickSplitController::Reconnecting
+            ? m_quickPreparation.begin(context()) : 0;
         m_coreController->m_connectionController->setConnectionState(Vpn::ConnectionState::Preparing);
+        if (requestId && !m_quickPreparation.active())
+            return; // A synchronous observer may already have cancelled this request.
 
         const QString serverId = m_coreController->m_serversController->getDefaultServerId();
         if (serverId.isEmpty()) {
             m_coreController->m_connectionController->setConnectionState(Vpn::ConnectionState::Disconnected);
             return;
         }
-
         const serverConfigUtils::ConfigType kind = m_coreController->m_serversRepository->serverKind(serverId);
-
-        if (serverConfigUtils::isApiV2Subscription(kind) || serverConfigUtils::isLegacyApiSubscription(kind)) {
-            m_coreController->m_subscriptionUiController->validateConfig();
-        } else {
-            m_coreController->m_installUiController->validateConfig();
-        }
+        if (serverConfigUtils::isApiV2Subscription(kind) || serverConfigUtils::isLegacyApiSubscription(kind))
+            m_coreController->m_subscriptionUiController->validateConfig(requestId);
+        else
+            m_coreController->m_installUiController->validateConfig(requestId);
     });
 
-    connect(m_coreController->m_subscriptionUiController, &SubscriptionUiController::configValidated, this, [this](bool isValid) {
+    const auto quickValidated = [this, context](quint64 requestId, bool isValid, ErrorCode errorCode) {
+        if (!m_quickPreparation.consume(requestId, context()))
+            return; // Ignore stale success AND stale error without disturbing a newer request.
+        const auto quick = m_coreController->m_quickSplitController;
+        if (quick->phase() != QuickSplitController::Reconnecting)
+            return;
+        if (!isValid) {
+            if (errorCode != ErrorCode::NoError) {
+                quick->connectionFailed(); // The stock error below replaces the generic failure.
+                if (errorCode == ErrorCode::ApiSubscriptionExpiredError)
+                    emit m_coreController->m_subscriptionUiController->subscriptionExpiredOnServer();
+                else
+                    emit m_coreController->m_pageController->showErrorMessage(errorCode);
+            }
+            m_coreController->m_connectionController->setConnectionState(Vpn::ConnectionState::Disconnected);
+            return;
+        }
+        m_coreController->m_connectionUiController->openConnection();
+    };
+    connect(m_coreController->m_subscriptionUiController, &SubscriptionUiController::connectionConfigValidated,
+            this, quickValidated);
+    connect(m_coreController->m_installUiController, &InstallUiController::connectionConfigValidated,
+            this, quickValidated);
+
+    // Ordinary connection requests retain their original validation and notification paths.
+    const auto validated = [this](bool isValid) {
         if (!isValid) {
             m_coreController->m_connectionController->setConnectionState(Vpn::ConnectionState::Disconnected);
             return;
         }
-
         m_coreController->m_connectionUiController->openConnection();
-    });
-
-    connect(m_coreController->m_installUiController, &InstallUiController::configValidated, this, [this](bool isValid) {
-        if (!isValid) {
-            m_coreController->m_connectionController->setConnectionState(Vpn::ConnectionState::Disconnected);
-            return;
-        }
-
-        m_coreController->m_connectionUiController->openConnection();
-    });
+    };
+    connect(m_coreController->m_subscriptionUiController, &SubscriptionUiController::configValidated, this, validated);
+    connect(m_coreController->m_installUiController, &InstallUiController::configValidated, this, validated);
 }
 
 void CoreSignalHandlers::initUnsupportedConnectDrawerHandler()
@@ -421,6 +471,12 @@ void CoreSignalHandlers::initNotificationHandler()
 {
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
     m_coreController->m_notificationHandler = NotificationHandler::create(m_coreController);
+
+    // Only our explicit reconnect transaction opts into notification coalescing.
+    connect(m_coreController->m_quickSplitController, &QuickSplitController::automaticSwitchStarted,
+            m_coreController->m_notificationHandler, &NotificationHandler::beginQuickSwitch);
+    connect(m_coreController->m_quickSplitController, &QuickSplitController::automaticSwitchFinished,
+            m_coreController->m_notificationHandler, &NotificationHandler::endQuickSwitch);
 
     connect(m_coreController->m_connectionController, &ConnectionController::connectionStateChanged, m_coreController->m_notificationHandler,
             &NotificationHandler::setConnectionState);

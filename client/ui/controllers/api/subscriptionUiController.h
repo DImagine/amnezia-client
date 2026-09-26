@@ -59,7 +59,8 @@ public slots:
     bool deactivateDevice(const QString &serverId);
     bool deactivateExternalDevice(const QString &serverId, const QString &uuid, const QString &serverCountryCode);
 
-    void validateConfig();
+    void validateConfig(quint64 requestId = 0);
+    void cancelConnectionValidation();
 
     void setCurrentProtocol(const QString &serverId, const QString &protocolName);
     bool isVlessProtocol(const QString &serverId);
@@ -82,6 +83,7 @@ public slots:
 
 signals:
     void configValidated(bool isValid);
+    void connectionConfigValidated(quint64 requestId, bool isValid, ErrorCode errorCode);
     void errorOccurred(ErrorCode errorCode);
     void trialEmailError(const QString &message);
     void subscriptionExpiredOnServer();
@@ -129,6 +131,7 @@ private:
         bool reloadServiceConfig = false;
         bool wasSubscriptionExpired = false;
         bool fromValidateConfig = false;
+        quint64 validationRequestId = 0; // Bind captcha continuation to its connection request.
         SubscriptionController::ProtocolData updateProtocolData;
 
         bool isPending = false;
@@ -160,6 +163,7 @@ private:
     QList<QString> m_qrCodes;
     QString m_vpnKey;
 
+    quint64 m_connectionValidationId = 0; // Zero keeps ordinary validation unchanged.
     ServersController* m_serversController;
     ApiServicesModel* m_apiServicesModel;
     ServicesCatalogController* m_servicesCatalogController;

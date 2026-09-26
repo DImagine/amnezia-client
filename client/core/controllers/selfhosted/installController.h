@@ -85,12 +85,13 @@ public:
 
     ErrorCode validateAndPrepareConfig(const QString &serverId);
 
-    void validateConfig(const QString &serverId);
+    void validateConfig(const QString &serverId, quint64 requestId = 0);
 
     void addEmptyServer(const ServerCredentials &credentials);
 
 signals:
     void configValidated(bool isValid);
+    void connectionConfigValidated(quint64 requestId, bool isValid, ErrorCode errorCode);
     void validationErrorOccurred(ErrorCode errorCode);
 
     void serverIsBusy(const bool isBusy);
