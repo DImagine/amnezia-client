@@ -92,7 +92,7 @@ public slots:
 
     void addEmptyServer();
 
-    void validateConfig();
+    void validateConfig(quint64 requestId = 0);
 
     Q_INVOKABLE void updateProtocols(const QString &serverId, int containerIndex);
 
@@ -141,6 +141,7 @@ signals:
     void apiConfigRemoved(const QString &message);
 
     void configValidated(bool isValid);
+    void connectionConfigValidated(quint64 requestId, bool isValid, ErrorCode errorCode);
 
 private:
 

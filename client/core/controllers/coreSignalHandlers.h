@@ -2,6 +2,7 @@
 #define CORESIGNALHANDLERS_H
 
 #include <QObject>
+#include "core/utils/connectionPreparationGuard.h"
 #include "core/controllers/coreController.h"
 
 class CoreSignalHandlers : public QObject
@@ -46,6 +47,7 @@ private:
     void initUpdateFoundHandler();
     void initLocalProxyHandler();
 
+    ConnectionPreparationGuard m_quickPreparation;
     CoreController* m_coreController;
 };
 

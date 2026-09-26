@@ -25,6 +25,7 @@ public:
 
     ~ConnectionUiController() = default;
 
+    Vpn::ConnectionState getCurrentConnectionState(); // Distinguish config preparation from an active tunnel.
     bool isConnected() const;
     bool isConnectionInProgress() const;
     QString connectionStateText() const;
@@ -54,7 +55,6 @@ signals:
     void noInstalledContainers();
 
 private:
-    Vpn::ConnectionState getCurrentConnectionState();
     void notifyConnectionBlocked(ErrorCode errorCode);
 
     ConnectionController* m_connectionController;

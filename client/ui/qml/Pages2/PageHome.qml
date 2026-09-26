@@ -152,6 +152,9 @@ PageType {
 
                 ConnectButton {
                     id: connectButton
+                    objectName: "connectButton"
+                    // Quick split switch drives reconnection itself; block manual toggles.
+                    enabled: !QuickSplitController.busy
 
                     anchors.centerIn: parent
                     width: Math.min(implicitWidth, parent.width, parent.height)
@@ -161,6 +164,8 @@ PageType {
 
             HomeInfoButton {
                 id: splitTunnelingButton
+                objectName: "splitTunnelingButton"
+                enabled: !QuickSplitController.busy
 
                 Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: parent.width - 32
@@ -184,6 +189,21 @@ PageType {
                 }
             }
 
+            QuickSplitTunneling {
+                objectName: "quickSplitTunneling"
+                visible: Qt.platform.os === "windows"
+                Layout.fillWidth: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+                selectedMode: QuickSplitController.mode
+                pendingMode: QuickSplitController.pendingMode
+                phase: QuickSplitController.phase
+                available: QuickSplitController.available
+                connected: ConnectionController.isConnected
+                connectionBusy: ConnectionController.isConnectionInProgress
+                onModeRequested: function(mode) { QuickSplitController.requestMode(mode) }
+            }
+
             PromoBanner {
                 id: promoBanner
 
@@ -203,6 +223,7 @@ PageType {
 
     Item {
         id: collapsedBar
+        enabled: !QuickSplitController.busy
 
         anchors.left: parent.left
         anchors.right: parent.right
@@ -289,6 +310,8 @@ PageType {
 
     SheetType {
         id: drawer
+        objectName: "drawerProtocol"
+        enabled: !QuickSplitController.busy
 
         bottomY: root.height
         closedY: root.height - collapsedBar.height

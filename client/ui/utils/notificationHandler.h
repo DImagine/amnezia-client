@@ -6,6 +6,7 @@
 #define NOTIFICATIONHANDLER_H
 
 #include <QObject>
+#include "connectionNotificationGate.h"
 #include "core/protocols/vpnProtocol.h"
 
 class QMenu;
@@ -33,6 +34,8 @@ public:
 public slots:
     virtual void setConnectionState(Vpn::ConnectionState state);
     virtual void onTranslationsUpdated();
+    void beginQuickSwitch();
+    void endQuickSwitch(bool success);
 
 signals:
     void notificationShown(const QString& title, const QString& message);
@@ -60,6 +63,7 @@ private:
     // We want to show a 'disconnected' notification only if we were actually
     // connected.
     bool m_connected = false;
+    ConnectionNotificationGate m_quickSwitchNotifications;
 };
 
 #endif  // NOTIFICATIONHANDLER_H

@@ -90,6 +90,7 @@
 #endif
 
 class CoreSignalHandlers;
+class QuickSplitController;
 
 class CoreController : public QObject
 {
@@ -173,6 +174,7 @@ private:
     QMetaObject::Connection m_reloadConfigErrorOccurredConnection;
 
     ConnectionUiController* m_connectionUiController;
+    QuickSplitController* m_quickSplitController = nullptr;
     FocusController* m_focusController = nullptr;
     PageController* m_pageController;
     InstallUiController* m_installUiController;

@@ -97,6 +97,7 @@ endif()
 if(NOT ANDROID)
     set(HEADERS ${HEADERS}
         ${CLIENT_ROOT_DIR}/ui/utils/notificationHandler.h
+        ${CLIENT_ROOT_DIR}/ui/utils/connectionNotificationGate.h
     )
 endif()
 
@@ -200,6 +201,7 @@ endif()
 if(NOT ANDROID)
     set(SOURCES ${SOURCES}
         ${CLIENT_ROOT_DIR}/ui/utils/notificationHandler.cpp
+        ${CLIENT_ROOT_DIR}/ui/utils/connectionNotificationGate.cpp
     )
 endif()
 

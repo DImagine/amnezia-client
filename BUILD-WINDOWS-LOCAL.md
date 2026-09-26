@@ -39,3 +39,48 @@ does not promise feature parity with official Amnezia Free/Premium releases.
 
 Build outputs and `.venv` are ignored by Git. Conan caches dependencies under
 `$env:USERPROFILE\.conan2`.
+
+## Quick split-tunneling controls
+
+The Windows home page offers three compact presets: Off, Addresses, and Apps.
+The original split-tunneling settings entry remains clickable above the presets.
+They preserve the configured lists and their inclusion/exclusion rules. Selecting
+a different preset while connected waits for disconnection, applies the preset,
+then uses the regular connection/configuration-validation flow. While disconnected,
+selecting a preset only saves the settings. Server-controlled routing disables the
+presets. Existing mixed settings are displayed explicitly until a preset is chosen.
+
+Automatic preset changes suppress intermediate Windows VPN-state notifications.
+After success, the stock connected notification is sent once after 1.5 seconds
+without another preset change. A new change resets that wait; a failure or ordinary
+disconnect cancels it. Ordinary connection notifications and tray state updates
+retain their existing behavior.
+
+Quick reconnection validation is tagged with a request ID and the selected server/
+protocol. Timeout, cancellation, or a selection change invalidates late results
+(including API captcha replies), and stops an in-flight reconnect. Specific stock
+errors are shown once; the quick-switch fallback message is used when no specific
+error is available. Settings already applied remain selected if reconnection fails.
+The disconnect/reconnect deadlines are 30/120 seconds respectively.
+
+The reviewed build is staged in `deploy/build/stage-quick-split-fixed`. Exit the
+previous GUI from its tray menu before launching its `AmneziaVPN.exe`. The existing
+Windows service and saved settings are reused; no reinstall is performed.
+
+The first build of this feature is staged separately in `deploy/build/stage-quick-split`
+so an already running baseline build in `stage` can remain open.
+
+The isolated tests below do not use the VPN service or the user's saved servers:
+
+```powershell
+# Build the coordinator and actual QML component tests independently of the client.
+$qtRoot = "$env:USERPROFILE/Qt/6.10.1/msvc2022_64"
+cmake -S client/tests/quickSplit -B deploy/build/quick-split-tests "-DCMAKE_PREFIX_PATH=$qtRoot"
+cmake --build deploy/build/quick-split-tests --config Release
+$env:PATH = "$qtRoot/bin;$env:PATH"
+$env:QT_PLUGIN_PATH = "$qtRoot/plugins"
+# Compile Russian strings for the narrow-window layout checks.
+& "$qtRoot/bin/lrelease.exe" client/translations/amneziavpn_ru_RU.ts -qm deploy/build/quick-split-tests/ru.qm
+$env:QUICK_SPLIT_TRANSLATION = "$PWD/deploy/build/quick-split-tests/ru.qm"
+ctest --test-dir deploy/build/quick-split-tests -C Release --output-on-failure
+```

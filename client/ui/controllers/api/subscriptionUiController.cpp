@@ -509,6 +509,7 @@ void SubscriptionUiController::onRefreshCaptchaRequested()
     }
 
     if (m_captchaState.flow == CaptchaFlow::Update) {
+        const quint64 requestId = m_captchaState.validationRequestId;
         SubscriptionController::CaptchaInfo captchaInfo;
         SubscriptionController::ProtocolData usedProtocolData;
         ErrorCode errorCode = m_subscriptionController->updateServiceFromGateway(
@@ -518,6 +519,8 @@ void SubscriptionUiController::onRefreshCaptchaRequested()
                 &captchaInfo,
                 &usedProtocolData);
 
+        if (requestId && requestId != m_connectionValidationId)
+            return; // Discard a response to a cancelled captcha.
         if (errorCode == ErrorCode::ApiCaptchaRequiredError && captchaInfo.isRequired) {
             m_captchaState.updateProtocolData = usedProtocolData;
             emit captchaRequired(captchaInfo.captchaId, captchaInfo.captchaImageBase64,
@@ -526,6 +529,10 @@ void SubscriptionUiController::onRefreshCaptchaRequested()
             emitCaptchaUpdateSuccess();
         } else {
             finishCaptchaFlow();
+            if (requestId) {
+                emit connectionConfigValidated(requestId, false, errorCode);
+                return;
+            }
             if (errorCode == ErrorCode::ApiSubscriptionExpiredError) {
                 emit subscriptionExpiredOnServer();
             } else {
@@ -561,6 +568,7 @@ void SubscriptionUiController::onRefreshCaptchaRequested()
 
 void SubscriptionUiController::resolveUpdateCaptcha(const QString &captchaId, const QString &solution)
 {
+    const quint64 requestId = m_captchaState.validationRequestId;
     SubscriptionController::CaptchaInfo retryCaptcha;
     ErrorCode errorCode = m_subscriptionController->resolveUpdateServiceCaptcha(
             m_captchaState.serverId,
@@ -571,6 +579,8 @@ void SubscriptionUiController::resolveUpdateCaptcha(const QString &captchaId, co
             solution,
             &retryCaptcha);
 
+    if (requestId && requestId != m_connectionValidationId)
+        return; // Ignore stale captcha replies, including errors.
     if (errorCode == ErrorCode::NoError) {
         emitCaptchaUpdateSuccess();
         return;
@@ -585,6 +595,10 @@ void SubscriptionUiController::resolveUpdateCaptcha(const QString &captchaId, co
     }
 
     finishCaptchaFlow();
+    if (requestId) {
+        emit connectionConfigValidated(requestId, false, errorCode);
+        return;
+    }
     if (errorCode == ErrorCode::ApiSubscriptionExpiredError) {
         emit subscriptionExpiredOnServer();
     } else {
@@ -680,6 +694,7 @@ void SubscriptionUiController::finishCaptchaFlow()
 
 void SubscriptionUiController::emitCaptchaUpdateSuccess()
 {
+    const quint64 requestId = m_captchaState.validationRequestId;
     const bool fromValidateConfig = m_captchaState.fromValidateConfig;
     const bool wasSubscriptionExpired = m_captchaState.wasSubscriptionExpired;
     const bool reloadServiceConfig = m_captchaState.reloadServiceConfig;
@@ -688,7 +703,10 @@ void SubscriptionUiController::emitCaptchaUpdateSuccess()
     finishCaptchaFlow();
 
     if (fromValidateConfig) {
-        emit configValidated(true);
+        if (requestId)
+            emit connectionConfigValidated(requestId, true, ErrorCode::NoError);
+        else
+            emit configValidated(true);
         return;
     }
     emitUpdateSuccess(wasSubscriptionExpired, reloadServiceConfig, newCountryName);
@@ -719,11 +737,24 @@ bool SubscriptionUiController::deactivateExternalDevice(const QString &serverId,
 }
 
 
-void SubscriptionUiController::validateConfig()
+void SubscriptionUiController::cancelConnectionValidation()
 {
+    m_connectionValidationId = 0;
+    if (m_captchaState.validationRequestId) {
+        m_captchaState.isPending = false;
+        emit captchaFlowDismissRequested();
+    }
+}
+
+void SubscriptionUiController::validateConfig(quint64 requestId)
+{
+    m_connectionValidationId = requestId;
     const QString serverId = m_serversController->getDefaultServerId();
     if (serverId.isEmpty()) {
-        emit configValidated(false);
+        if (requestId)
+            emit connectionConfigValidated(requestId, false, ErrorCode::NoError);
+        else
+            emit configValidated(false);
         return;
     }
 
@@ -734,10 +765,15 @@ void SubscriptionUiController::validateConfig()
     ErrorCode errorCode = m_subscriptionController->validateAndUpdateConfig(serverId, hasInstalledContainers,
                                                                             &captchaInfo, &usedProtocolData);
 
+    // Network validation may run a nested event loop; cancellation wins over its result.
+    if (requestId && requestId != m_connectionValidationId)
+        return;
+
     if (errorCode == ErrorCode::ApiCaptchaRequiredError && captchaInfo.isRequired) {
         m_captchaState = CaptchaState{};
         m_captchaState.flow = CaptchaFlow::Update;
         m_captchaState.fromValidateConfig = true;
+        m_captchaState.validationRequestId = requestId;
         m_captchaState.serverId = serverId;
         if (const auto apiV2 = m_serversController->apiV2Config(serverId)) {
             m_captchaState.serverCountryCode = apiV2->apiConfig.serverCountryCode;
@@ -748,10 +784,15 @@ void SubscriptionUiController::validateConfig()
 
         emit captchaRequired(captchaInfo.captchaId, captchaInfo.captchaImageBase64,
                              captchaInfo.hint.isEmpty() ? tr("Enter the digits from the image to continue") : captchaInfo.hint);
-        emit configValidated(false);
+        if (!requestId)
+            emit configValidated(false); // A quick request stays pending while the captcha is visible.
         return;
     }
 
+    if (requestId) {
+        emit connectionConfigValidated(requestId, errorCode == ErrorCode::NoError, errorCode);
+        return;
+    }
     if (errorCode != ErrorCode::NoError) {
         if (errorCode == ErrorCode::ApiSubscriptionExpiredError) {
             emit subscriptionExpiredOnServer();
