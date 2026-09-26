@@ -33,7 +33,9 @@ class PackageConan(ConanFile):
             )
 
     def source(self):
-        get(self, f"https://www.wintun.net/builds/wintun-{self.version}.zip",
+        # Brave mirrors the same signed archive; keep the upstream checksum mandatory.
+        get(self, [f"https://brave-build-deps-public.s3.brave.com/wintun/wintun-{self.version}.zip",
+                   f"https://www.wintun.net/builds/wintun-{self.version}.zip"],
             sha256="07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51", strip_root=True)
 
     def package(self):
