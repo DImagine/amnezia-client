@@ -7236,8 +7236,8 @@ Remove the server from the app to continue.</source>
         <translation>Изменить списки адресов и приложений</translation>
     </message>
     <message>
-        <source>Off</source>
-        <translation>Выключено</translation>
+        <source>All traffic</source>
+        <translation>Весь трафик</translation>
     </message>
     <message>
         <source>Addresses</source>
