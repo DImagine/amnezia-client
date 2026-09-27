@@ -42,8 +42,14 @@ Build outputs and `.venv` are ignored by Git. Conan caches dependencies under
 
 ## Quick split-tunneling controls
 
-The Windows home page offers three compact presets: Off, Addresses, and Apps.
+For the feature's goals, UX decisions, failure handling, and implementation map,
+see [QUICK-SPLIT-TUNNELING.md](QUICK-SPLIT-TUNNELING.md) (Russian).
+
+The Windows home page offers three compact presets: All traffic, Addresses, and Apps.
 The original split-tunneling settings entry remains clickable above the presets.
+The selected preset has a neutral outline while disconnected, a golden glow while
+connected, and a pulsing target outline during automatic switching. Labels use the
+same 14 px size as the original split-tunneling entry.
 They preserve the configured lists and their inclusion/exclusion rules. Selecting
 a different preset while connected waits for disconnection, applies the preset,
 then uses the regular connection/configuration-validation flow. While disconnected,
@@ -63,7 +69,7 @@ errors are shown once; the quick-switch fallback message is used when no specifi
 error is available. Settings already applied remain selected if reconnection fails.
 The disconnect/reconnect deadlines are 30/120 seconds respectively.
 
-The reviewed build is staged in `deploy/build/stage-quick-split-fixed`. Exit the
+The current build is staged in `deploy/build/stage-quick-split-glow`. Exit the
 previous GUI from its tray menu before launching its `AmneziaVPN.exe`. The existing
 Windows service and saved settings are reused; no reinstall is performed.
 

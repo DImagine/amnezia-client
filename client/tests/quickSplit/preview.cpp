@@ -17,7 +17,11 @@ int main(int argc, char **argv)
     view.engine()->addImportPath(QStringLiteral(QML_DIR "/Modules"));
     view.setColor(QColor("#0E0E11"));
     view.setResizeMode(QQuickView::SizeRootObjectToView);
-    view.setInitialProperties({{"selectedMode", 1}, {"connected", true}});
+    // Optional state argument captures each visual state without connecting to a VPN.
+    const QString state = argc > 3 ? QString::fromLocal8Bit(argv[3]) : QStringLiteral("connected");
+    const bool switching = state == QStringLiteral("switching");
+    view.setInitialProperties({{"selectedMode", 0}, {"connected", state == QStringLiteral("connected")},
+                               {"phase", switching ? 3 : 0}, {"pendingMode", switching ? 2 : -1}});
     view.setSource(QUrl::fromLocalFile(QStringLiteral(QML_DIR "/Components/QuickSplitTunneling.qml")));
     if (view.status() == QQuickView::Error)
         return 1;
