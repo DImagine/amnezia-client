@@ -15,7 +15,7 @@ int main(int argc, char **argv)
         app.installTranslator(&translator);
     QQuickView view;
     view.engine()->addImportPath(QStringLiteral(QML_DIR "/Modules"));
-    view.setColor(QColor("#0E0E11"));
+    view.setColor(QColor("#101012")); // New design-system page background (bgBase).
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     // Optional state argument captures each visual state without connecting to a VPN.
     const QString state = argc > 3 ? QString::fromLocal8Bit(argv[3]) : QStringLiteral("connected");

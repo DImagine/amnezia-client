@@ -7,7 +7,8 @@ This fork uses C++17/C++20 and Qt Quick (QML). The upstream repository is
 
 - Visual Studio 2022 Build Tools with the x64 C++ compiler and Windows SDK.
 - CMake 3.25 or newer.
-- Qt 6.10.1, MSVC 2022 x64, including `qtremoteobjects`, `qt5compat`, and `qtshadertools`.
+- Qt 6.10.1, MSVC 2022 x64, including `qtremoteobjects`, `qt5compat`, `qtshadertools`,
+  `qthttpserver`, and `qtwebsockets` (the last two are required since 5.1).
 - Python with `conan==2.28.0` installed in `.venv`.
 - All Git submodules initialized.
 
@@ -69,7 +70,7 @@ errors are shown once; the quick-switch fallback message is used when no specifi
 error is available. Settings already applied remain selected if reconnection fails.
 The disconnect/reconnect deadlines are 30/120 seconds respectively.
 
-The current build is staged in `deploy/build/stage-quick-split-glow`. Exit the
+The 5.1.0.6-based build is staged in `deploy/build/stage-5.1.0.6`. Exit the
 previous GUI from its tray menu before launching its `AmneziaVPN.exe`. The existing
 Windows service and saved settings are reused; no reinstall is performed.
 

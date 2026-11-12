@@ -20,7 +20,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 40
         radius: 11
-        color: AmneziaStyle.color.onyxBlack
+        color: AmneziaStyle.color.bgSurface
         RowLayout {
             anchors.fill: parent
             anchors.margins: 3
@@ -56,7 +56,7 @@ ColumnLayout {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         wrapMode: Text.NoWrap
-                        color: segment.activeMode ? AmneziaStyle.color.midnightBlack : AmneziaStyle.color.paleGray
+                        color: segment.activeMode ? AmneziaStyle.color.textInverted : AmneziaStyle.color.textSecondary
                     }
                     background: Item {
                         // Animate only the halo so the label remains readable throughout a switch.
@@ -67,7 +67,7 @@ ColumnLayout {
                             glowRadius: 5
                             spread: 0.12
                             cornerRadius: surface.radius + glowRadius
-                            color: AmneziaStyle.color.goldenApricot
+                            color: AmneziaStyle.color.shadowGlow
                             visible: segment.activeMode || segment.pending
                             opacity: 0.45
                             SequentialAnimation on opacity {
@@ -82,13 +82,13 @@ ColumnLayout {
                             id: surface
                             anchors.fill: parent
                             radius: 8
-                            color: segment.activeMode ? AmneziaStyle.color.goldenApricot
-                                   : segment.pending ? AmneziaStyle.color.deepBrown
-                                   : segment.selected || segment.down ? AmneziaStyle.color.slateGray
-                                   : segment.hovered ? AmneziaStyle.color.charcoalGray : "transparent"
+                            color: segment.activeMode ? AmneziaStyle.color.accentLight
+                                   : segment.pending ? AmneziaStyle.color.accentDeep
+                                   : segment.selected || segment.down ? AmneziaStyle.color.bgSheet
+                                   : segment.hovered ? AmneziaStyle.color.bgPanel : "transparent"
                             border.width: segment.activeFocus || segment.selected || segment.pending ? 1 : 0
                             border.color: segment.activeFocus || segment.activeMode || segment.pending
-                                          ? AmneziaStyle.color.goldenApricot : AmneziaStyle.color.mutedGray
+                                          ? AmneziaStyle.color.accentLight : AmneziaStyle.color.borderBold
                             Behavior on color { ColorAnimation { duration: 180 } }
                         }
                     }
@@ -109,7 +109,7 @@ ColumnLayout {
         ToolTip.visible: statusHover.hovered && truncated
         ToolTip.text: text
         HoverHandler { id: statusHover }
-        color: root.busy ? AmneziaStyle.color.goldenApricot : AmneziaStyle.color.mutedGray
+        color: root.busy ? AmneziaStyle.color.accentLight : AmneziaStyle.color.textTertiary
         text: !root.available ? qsTr("The server controls split tunneling")
               : root.phase === 1 ? qsTr("Disconnecting to apply the mode…")
               : root.phase === 2 ? qsTr("Applying the mode…")

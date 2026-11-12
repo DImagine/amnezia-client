@@ -24,7 +24,8 @@ try {
     }
 
     # Build missing dependencies locally when Amnezia's package server is unavailable.
-    Invoke-CMake @('-S', $projectDir, '-B', $buildDir, '-D_CONAN_INSTALL_ARGS=-r=conancenter',
+    # Drop the cached app version so a reused build dir picks up the version from CMakeLists.txt.
+    Invoke-CMake @('-S', $projectDir, '-B', $buildDir, '-U', 'AMNEZIAVPN_VERSION', '-D_CONAN_INSTALL_ARGS=-r=conancenter',
         '-DCONAN_INSTALL_BUILD_CONFIGURATIONS=Release', '-DCMAKE_BUILD_TYPE=Release',
         "-DCMAKE_PREFIX_PATH=$QtRoot")
 
